@@ -37,6 +37,7 @@ class DETR(tf.keras.Model):
         self.bbox_embed_linear2 = Linear(self.model_dim, name='bbox_embed_1')
         self.bbox_embed_linear3 = Linear(4, name='bbox_embed_2')
         self.activation = ReLU()
+        self.IS_BUILD = False
 
     def call(self, inp, training=False, post_process=False):
         x, masks = inp
@@ -60,6 +61,19 @@ class DETR(tf.keras.Model):
 
         if post_process:
             output = self.post_process(output)
+        if self.IS_BUILD:
+            self.layers[0].save_weights("backbone.h5")
+            import numpy as np
+            from pathlib import Path
+            for variable in self.variables:
+                name = variable.name
+                name = name.replace(":0","")
+                name_arr = name.split("/")
+                dir_path = "weights/" + "/".join(name_arr[:-1])
+                file_path = dir_path + "/{}.npy".format(name_arr[-1])
+                Path(dir_path).mkdir(parents=True, exist_ok=True)
+                np.save(file_path,variable.numpy())
+        self.IS_BUILD=True
         return output
 
     def build(self, input_shape=None, **kwargs):
